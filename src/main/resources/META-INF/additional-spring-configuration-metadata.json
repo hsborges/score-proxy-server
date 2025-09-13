@@ -1,0 +1,12 @@
+{"properties": [
+  {
+    "name": "proxy.client-id",
+    "type": "java.lang.String",
+    "description": "Client ID used for proxy authentication."
+  },
+  {
+    "name": "proxy.base-url",
+    "type": "java.lang.String",
+    "description": "Base URL of the external score service."
+  }
+]}
