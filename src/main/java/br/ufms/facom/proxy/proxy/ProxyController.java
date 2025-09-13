@@ -1,17 +1,12 @@
-package br.ufms.facom.proxy.score;
+package br.ufms.facom.proxy.proxy;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
 
-import br.ufms.facom.proxy.utils.AppProperties;
+import br.ufms.facom.proxy.client.Client;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class ProxyController {
 
     @Autowired
-    private AppProperties proxyProperties;
+    private Client client;
 
     @Operation(
         summary = "Get score by CPF",
@@ -37,16 +32,6 @@ public class ProxyController {
             @Parameter(description = "CPF of the user", required = true)
             @RequestParam String cpf) {
         
-        String url = String.format("%s/score?cpf=%s", proxyProperties.getBaseUrl(), cpf);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("client-id", proxyProperties.getClientId());
-
-        try {
-            ResponseEntity<String> response = new RestTemplate().exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Proxy error: " + e.getMessage());
-        }
+        return client.getScore(cpf);
     }
 }
