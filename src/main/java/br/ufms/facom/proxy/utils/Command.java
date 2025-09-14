@@ -11,13 +11,14 @@ public class Command<T> {
         this.action = action;
     }
 
-    public void execute() {
+    public CompletableFuture<T> execute() {
         try {
             T result = action.call();
             future.complete(result);
         } catch (Exception e) {
             future.completeExceptionally(e);
         }
+        return future;
     }
 
     public CompletableFuture<T> getFuture() {

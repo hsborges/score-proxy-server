@@ -1,11 +1,11 @@
 package br.ufms.facom.proxy.client;
 
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 public class UpstreamClient implements Client {
     private final RestTemplate restTemplate = new RestTemplate();
@@ -18,6 +18,7 @@ public class UpstreamClient implements Client {
         this.clientId = clientId;
     }
 
+    @Override
     public ResponseEntity<String> getScore(String cpf) {
         String url = String.format("%s/score?cpf=%s", baseUrl, cpf);
         HttpHeaders headers = new HttpHeaders();

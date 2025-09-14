@@ -1,5 +1,6 @@
 package br.ufms.facom.proxy.client.decorators;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 
 import br.ufms.facom.proxy.client.Client;
@@ -21,10 +22,15 @@ public class CachingDecorator extends ClientDecorator {
     @Override
     public ResponseEntity<String> getScore(String cpf) {
         if (cache.containsKey(cpf)) {
-            return cache.get(cpf);
+            ResponseEntity<String> cached = cache.get(cpf);
+            HttpHeaders newHeaders = new HttpHeaders();
+            newHeaders.putAll(cached.getHeaders());
+            newHeaders.set("x-ratelimit-reset", String.valueOf(System.currentTimeMillis() / 1000));
+            newHeaders.set("x-ratelimit-reset-in", "0");
+            return new ResponseEntity<>(cached.getBody(), newHeaders, cached.getStatusCode());
         }
         ResponseEntity<String> response = delegate.getScore(cpf);
-        cache.put(cpf, response);
+        if (response.getStatusCode().is2xxSuccessful()) cache.put(cpf, response);
         return response;
     }
 }

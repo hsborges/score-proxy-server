@@ -1,16 +1,18 @@
 package br.ufms.facom.proxy.client.decorators;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import br.ufms.facom.proxy.client.Client;
 import br.ufms.facom.proxy.utils.Command;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 public class RateLimitingDecorator extends ClientDecorator {
-    private final BlockingQueue<Command<?>> queue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Command<ResponseEntity<String>>> queue = new LinkedBlockingQueue<>();
     private final Thread worker;
 
     public RateLimitingDecorator(Client delegate) {
@@ -23,10 +25,12 @@ public class RateLimitingDecorator extends ClientDecorator {
     private void processQueue() {
         while (true) {
             try {
-                Command<?> command = queue.take();
-                command.execute();
-                TimeUnit.SECONDS.sleep(1); // 1 request per second
-            } catch (InterruptedException ignored) {
+                Command<ResponseEntity<String>> command = queue.take();                
+                ResponseEntity<String> response = command.execute().get();
+                long ratelimitResetIn = Long.parseLong(response.getHeaders().get("x-ratelimit-reset-in").getFirst());
+                if (ratelimitResetIn > 0) TimeUnit.MILLISECONDS.sleep(ratelimitResetIn);
+                if (response.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS)) this.queue.add(command);
+            } catch (InterruptedException | ExecutionException ignored) {
                 Thread.currentThread().interrupt();
                 break;
             }
@@ -38,8 +42,8 @@ public class RateLimitingDecorator extends ClientDecorator {
         try {
             Command<ResponseEntity<String>> command = new Command<>(() -> delegate.getScore(cpf));
             queue.put(command);
-            return command.getFuture().join();
-        } catch (Exception e) {
+            return command.getFuture().get();
+        } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }
